@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water Level Alarm System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg:       #0a0c0f;
+    --panel:    #0e1117;
+    --border:   #1e2a35;
+    --accent:   #00d4ff;
+    --green:    #00ff88;
+    --yellow:   #ffd700;
+    --orange:   #ff8c00;
+    --red:      #ff2244;
+    --dim:      #2a3a4a;
+    --text:     #c8dae8;
+    --text-dim: #4a6070;
+    --glow-b:   0 0 12px #00d4ff55;
+    --glow-g:   0 0 12px #00ff8855;
+    --glow-r:   0 0 20px #ff224488;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+    background-image:
+      repeating-linear-gradient(0deg,  transparent, transparent 39px, #ffffff04 39px, #ffffff04 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, #ffffff04 39px, #ffffff04 40px);
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(16px,4vw,30px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-shadow: var(--glow-b);
+  }
+  .header p {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-top: 4px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .live-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: var(--glow-g);
+    margin-right: 6px;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  @media (max-width:640px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── Panel ── */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+  .panel-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .full-width { grid-column: 1 / -1; }
+
+  /* ── Value Row ── */
+  .value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid #1a2530;
+  }
+  .value-row:last-child { border-bottom: none; }
+  .value-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .value-data {
+    font-family: 'Orbitron', monospace;
+    font-size: 17px;
+    font-weight: 700;
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+  .val-normal { color: var(--green);    text-shadow: var(--glow-g); }
+  .val-low    { color: var(--yellow);   text-shadow: 0 0 12px #ffd70066; }
+  .val-medium { color: var(--orange);   text-shadow: 0 0 12px #ff8c0066; }
+  .val-high   { color: var(--red);      text-shadow: var(--glow-r); }
+  .val-accent { color: var(--accent);   text-shadow: var(--glow-b); }
+  .val-dim    { color: var(--text-dim); }
+
+  /* ── AlarmSelect Buttons ── */
+  .alarm-select-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .sel-btn {
+    padding: 14px 6px;
+    border-radius: 5px;
+    border: 2px solid;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .btn-low    { border-color: var(--yellow); color: var(--yellow); }
+  .btn-medium { border-color: var(--orange); color: var(--orange); }
+  .btn-high   { border-color: var(--red);    color: var(--red); }
+  .sel-btn.selected.btn-low    { background: #ffd70022; box-shadow: 0 0 14px #ffd70055; }
+  .sel-btn.selected.btn-medium { background: #ff8c0022; box-shadow: 0 0 14px #ff8c0055; }
+  .sel-btn.selected.btn-high   { background: #ff224422; box-shadow: 0 0 14px #ff224488; }
+  .sel-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── Trigger Button ── */
+  .trig-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 5px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .trig-btn.active {
+    background: #00d4ff22;
+    box-shadow: var(--glow-b), inset 0 0 20px #00d4ff11;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  .trig-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  @keyframes pulse { 0%,100%{ box-shadow: var(--glow-b); } 50%{ box-shadow: 0 0 25px #00d4ffaa; } }
+
+  /* ── Message Box ── */
+  .msg-box {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 5px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    min-height: 36px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .msg-box.msg-warn {
+    background: #ff224415;
+    border: 1px solid var(--red);
+    color: var(--red);
+    text-shadow: var(--glow-r);
+  }
+  .msg-box.msg-info {
+    background: #ffd70015;
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+  }
+  .msg-box.msg-empty {
+    background: #11181f;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  /* ── Timer Arc ── */
+  .timer-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .arc-container {
+    position: relative;
+    width: 130px; height: 130px;
+    margin: 0 auto 10px;
+  }
+  .arc-container svg { transform: rotate(-90deg); }
+  #arc-bg   { stroke: var(--dim); }
+  #arc-fill { stroke: var(--accent); transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+  .timer-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center;
+  }
+  .timer-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: var(--glow-b);
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+  .timer-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  /* ── Sensors ── */
+  .sensor-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .sensor-card {
+    flex: 1;
+    min-width: 110px;
+    background: #11181f;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 14px;
+    text-align: center;
+  }
+  .sensor-card .s-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .sensor-card .s-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: var(--glow-b);
+  }
+  .sensor-card .s-unit {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* ── SW12 ── */
+  .sw12-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #11181f;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+  }
+  .sw12-led {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+  }
+  .sw12-led.on {
+    background: var(--red);
+    box-shadow: 0 0 16px var(--red), 0 0 30px #ff224455;
+    animation: strobe 0.5s step-end infinite;
+  }
+  @keyframes strobe { 50% { opacity: 0.5; } }
+  .sw12-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* ── AlarmType Badge ── */
+  .alarm-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 3px;
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+  }
+  .badge-NORMAL { background:#00ff8822; color:var(--green);  border:1px solid var(--green); }
+  .badge-LOW    { background:#ffd70022; color:var(--yellow); border:1px solid var(--yellow); }
+  .badge-MEDIUM { background:#ff8c0022; color:var(--orange); border:1px solid var(--orange); }
+  .badge-HIGH   { background:#ff224422; color:var(--red);    border:1px solid var(--red); box-shadow:var(--glow-r); animation:pulse-badge 0.8s ease-in-out infinite; }
+  @keyframes pulse-badge { 0%,100%{box-shadow:var(--glow-r)} 50%{box-shadow:0 0 25px #ff2244aa} }
+
+  /* ── Log Table ── */
+  .log-scroll {
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 4px;
+  }
+  .log-scroll::-webkit-scrollbar { width: 4px; }
+  .log-scroll::-webkit-scrollbar-track { background: #11181f; }
+  .log-scroll::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+  }
+  .log-table th {
+    text-align: left;
+    padding: 6px 8px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    font-size: 9px;
+    letter-spacing: 2px;
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    z-index: 1;
+    white-space: nowrap;
+  }
+  .log-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #12202c;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .log-table tr:last-child td { border-bottom: none; }
+  .log-table tr.row-new td { animation: rowFlash 0.6s ease-out; }
+  @keyframes rowFlash { from { background: #00d4ff18; } to { background: transparent; } }
+
+  .ev-START  { color: var(--green);    font-weight: bold; }
+  .ev-END    { color: var(--text-dim); }
+  .ev-WARN   { color: var(--red); }
+  .ev-TICK   { color: #2a4a5a; }
+
+  .type-NORMAL { color: var(--green); }
+  .type-LOW    { color: var(--yellow); }
+  .type-MEDIUM { color: var(--orange); }
+  .type-HIGH   { color: var(--red); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: #ff224433;
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 12px 28px;
+    border-radius: 5px;
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-shadow: var(--glow-r);
+    box-shadow: var(--glow-r);
+    transition: transform 0.4s cubic-bezier(.34,1.56,.64,1);
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">⚠ MESSAGE</div>
+
+<!-- Header -->
+<div class="header">
+  <h1><span class="live-dot"></span>WATER LEVEL ALARM SYSTEM</h1>
+  <p>PYTHON FLASK BACKEND · REAL-TIME MONITOR · SCAN RATE: 1 SEC</p>
+</div>
+
+<div class="grid">
+
+  <!-- ── LEFT: Alarm Control ── -->
+  <div class="panel">
+    <div class="panel-title">// ALARM CONTROL</div>
+
+    <!-- AlarmSelect -->
+    <div class="panel-title" style="margin-bottom:8px;color:#3a5060;">ALARM_SELECT</div>
+    <div class="alarm-select-grid">
+      <button class="sel-btn btn-low"    id="btn-1" onclick="selectAlarm(1)">LOW<br><small>1</small></button>
+      <button class="sel-btn btn-medium" id="btn-2" onclick="selectAlarm(2)">MED<br><small>2</small></button>
+      <button class="sel-btn btn-high"   id="btn-3" onclick="selectAlarm(3)">HIGH<br><small>3</small></button>
+    </div>
+
+    <!-- AlarmTrigger -->
+    <div class="panel-title" style="margin-bottom:8px;color:#3a5060;">ALARM_TRIGGER</div>
+    <button class="trig-btn" id="trig-btn" onclick="triggerAlarm()">▶ ACTIVATE ALARM</button>
+
+    <!-- AlarmMessage -->
+    <div class="msg-box msg-empty" id="msg-box">
+      <span id="msg-text">— SYSTEM READY —</span>
+    </div>
+
+    <!-- SW12 -->
+    <div class="sw12-indicator">
+      <div class="sw12-led" id="sw12-led"></div>
+      <div>
+        <div class="sw12-text" id="sw12-text">SW12 — SIREN/LIGHT: <span style="color:var(--text-dim)">OFF</span></div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-family:'Share Tech Mono',monospace">PHYSICAL OUTPUT RELAY</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Real-Time Status ── -->
+  <div class="panel">
+    <div class="panel-title">// REAL-TIME STATUS</div>
+
+    <div class="value-row">
+      <span class="value-label">AlarmSelect</span>
+      <span class="value-data val-dim" id="disp-select">0</span>
+    </div>
+    <div class="value-row">
+      <span class="value-label">AlarmTrigger</span>
+      <span class="value-data val-dim" id="disp-trigger">0</span>
+    </div>
+    <div class="value-row">
+      <span class="value-label">ActiveAlarm</span>
+      <span class="value-data val-dim" id="disp-active">0</span>
+    </div>
+    <div class="value-row">
+      <span class="value-label">AlarmType</span>
+      <span id="disp-type" class="alarm-badge badge-NORMAL">NORMAL</span>
+    </div>
+
+    <!-- Timer Arc -->
+    <div class="timer-wrap" style="margin-top:14px;">
+      <div class="panel-title" style="margin-bottom:4px;">ALARM_DURATION (30 SEC)</div>
+      <div class="arc-container">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <circle id="arc-bg"   cx="65" cy="65" r="54" fill="none" stroke-width="8"/>
+          <circle id="arc-fill" cx="65" cy="65" r="54" fill="none" stroke-width="8"
+                  stroke-linecap="round"
+                  stroke-dasharray="339.3"
+                  stroke-dashoffset="339.3"/>
+        </svg>
+        <div class="timer-center">
+          <div class="timer-num" id="timer-num">0</div>
+          <div class="timer-sub">SEC REMAIN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Sensors (full width) ── -->
+  <div class="panel full-width">
+    <div class="panel-title">// SENSOR READINGS — LIVE</div>
+    <div class="sensor-row">
+      <div class="sensor-card">
+        <div class="s-label">WATER_LEVEL</div>
+        <div class="s-val" id="s-wl">--</div>
+        <div class="s-unit">meters</div>
+      </div>
+      <div class="sensor-card">
+        <div class="s-label">RADAR_DIST</div>
+        <div class="s-val" id="s-rd">--</div>
+        <div class="s-unit">meters</div>
+      </div>
+      <div class="sensor-card">
+        <div class="s-label">PANEL_TEMP</div>
+        <div class="s-val" id="s-pt">--</div>
+        <div class="s-unit">°C</div>
+      </div>
+      <div class="sensor-card">
+        <div class="s-label">BATT_VOLTS</div>
+        <div class="s-val" id="s-bv">--</div>
+        <div class="s-unit">V</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AlarmLog Table (full width) ── -->
+  <div class="panel full-width">
+    <div class="panel-title">// ALARM_LOG — REAL-TIME DATA TABLE (1000 RECORDS MAX)</div>
+    <div class="log-scroll">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>TIMESTAMP</th>
+            <th>EVENT</th>
+            <th>ALARM_TYPE</th>
+            <th>ACTIVE_ALARM</th>
+            <th>ALARM_TIMER</th>
+            <th>ALARM_SELECT</th>
+            <th>ALARM_TRIGGER</th>
+            <th>MESSAGE</th>
+            <th>WATER_LVL</th>
+            <th>RADAR_DIST</th>
+            <th>PTEMP °C</th>
+            <th>BATT V</th>
+          </tr>
+        </thead>
+        <tbody id="log-body">
+          <tr id="empty-row">
+            <td colspan="12" style="color:var(--text-dim);text-align:center;padding:20px;">
+              No events logged yet — waiting for alarm activity
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// LOCAL UI STATE (for rendering only)
+// ─────────────────────────────────────────────
+const UI = {
+  lastLogId: null,
+  logEntries: []
+};
+
+const ALARM_DURATION = 30;
+const CIRC = 2 * Math.PI * 54; // 339.3
+
+// ─────────────────────────────────────────────
+// FETCH CURRENT STATE FROM BACKEND
+// ─────────────────────────────────────────────
+async function fetchState() {
+  try {
+    const response = await fetch('/api/state');
+    if (!response.ok) throw new Error('Failed to fetch state');
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching state:', error);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────
+// USER: Select Alarm
+// ─────────────────────────────────────────────
+async function selectAlarm(level) {
+  try {
+    const response = await fetch('/api/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: level })
+    });
+    
+    const result = await response.json();
+    if (result.error) {
+      showToast('⚠  ' + result.error);
+    }
+    await updateUI();
+  } catch (error) {
+    console.error('Error selecting alarm:', error);
+  }
+}
+
+// ─────────────────────────────────────────────
+// USER: Trigger Alarm
+// ─────────────────────────────────────────────
+async function triggerAlarm() {
+  try {
+    const response = await fetch('/api/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const result = await response.json();
+    if (result.error) {
+      showToast('⚠  ' + result.error);
+    }
+    await updateUI();
+  } catch (error) {
+    console.error('Error triggering alarm:', error);
+  }
+}
+
+// ─────────────────────────────────────────────
+// UPDATE UI FROM BACKEND STATE
+// ─────────────────────────────────────────────
+async function updateUI() {
+  const state = await fetchState();
+  if (!state) return;
+
+  const $ = id => document.getElementById(id);
+
+  // Value displays
+  $('disp-select').textContent = state.alarm_select;
+  $('disp-trigger').textContent = state.alarm_trigger;
+  $('disp-active').textContent = state.active_alarm;
+
+  // Color classes
+  const lvl = { 0:'val-normal', 1:'val-low', 2:'val-medium', 3:'val-high' };
+  $('disp-active').className = 'value-data ' + (lvl[state.active_alarm] || 'val-normal');
+  $('disp-select').className = 'value-data ' + (lvl[state.alarm_select] || 'val-dim');
+  $('disp-trigger').className = 'value-data ' + (state.alarm_trigger ? 'val-low' : 'val-dim');
+
+  // AlarmType badge
+  const badge = $('disp-type');
+  badge.textContent = state.alarm_type;
+  badge.className = 'alarm-badge badge-' + state.alarm_type;
+
+  // Timer arc
+  const frac = state.alarm_timer / ALARM_DURATION;
+  const offset = CIRC * (1 - frac);
+  $('arc-fill').style.strokeDashoffset = offset;
+  $('timer-num').textContent = state.alarm_timer;
+  const arcCol = { 0:'#00d4ff', 1:'#ffd700', 2:'#ff8c00', 3:'#ff2244' };
+  const col = arcCol[state.active_alarm] || '#00d4ff';
+  $('arc-fill').style.stroke = col;
+  $('timer-num').style.color = col;
+  $('timer-num').style.textShadow = `0 0 12px ${col}88`;
+
+  // Alarm select buttons
+  for (let i = 1; i <= 3; i++) {
+    const b = $('btn-' + i);
+    b.classList.toggle('selected', state.alarm_select === i);
+    b.disabled = state.alarm_timer > 0;
+  }
+
+  // Trigger button
+  const tb = $('trig-btn');
+  tb.classList.toggle('active', state.alarm_trigger === 1);
+  tb.disabled = state.alarm_timer > 0;
+  tb.textContent = state.alarm_trigger === 1
+    ? `⏳  ALARM ACTIVE — ${state.alarm_timer}s`
+    : '▶ ACTIVATE ALARM';
+
+  // Message box
+  const mb = $('msg-box');
+  const mxt = $('msg-text');
+  if (state.alarm_message === "Please Select AlarmSelect") {
+    mb.className = 'msg-box msg-warn';
+    mxt.textContent = '⚠  ' + state.alarm_message;
+  } else if (state.alarm_message === "Alarm are all ready active") {
+    mb.className = 'msg-box msg-info';
+    mxt.textContent = '⚠  ' + state.alarm_message;
+  } else {
+    mb.className = 'msg-box msg-empty';
+    mxt.textContent = state.alarm_timer > 0
+      ? `🔴  ALARM RUNNING — ${state.alarm_timer} SEC REMAINING`
+      : '— SYSTEM READY —';
+  }
+
+  // SW12
+  const on = state.active_alarm > 0;
+  $('sw12-led').classList.toggle('on', on);
+  $('sw12-text').innerHTML = 'SW12 — SIREN/LIGHT: ' +
+    (on ? '<span style="color:var(--red);font-weight:700">ON</span>'
+        : '<span style="color:var(--text-dim)">OFF</span>');
+
+  // Sensors
+  $('s-wl').textContent = state.water_level.toFixed(3);
+  $('s-rd').textContent = state.radar_distance.toFixed(3);
+  $('s-pt').textContent = state.ptemp.toFixed(2);
+  $('s-bv').textContent = state.batt_volts.toFixed(3);
+
+  // Update logs
+  if (state.log_entries && state.log_entries.length > 0) {
+    UI.logEntries = state.log_entries;
+    renderLog();
+  }
+}
+
+// ─────────────────────────────────────────────
+// RENDER LOG TABLE
+// ─────────────────────────────────────────────
+function renderLog() {
+  const tbody = document.getElementById('log-body');
+  const emptyRow = document.getElementById('empty-row');
+  
+  if (!UI.logEntries.length) {
+    emptyRow.style.display = '';
+    return;
+  }
+  
+  emptyRow.style.display = 'none';
+
+  const evClass = {
+    START: 'ev-START',
+    END: 'ev-END',
+    WARN: 'ev-WARN'
+  };
+
+  tbody.innerHTML = UI.logEntries.map(r => `
+    <tr>
+      <td>${r.ts}</td>
+      <td class="${evClass[r.event] || ''}">${r.event}</td>
+      <td class="type-${r.type}">${r.type}</td>
+      <td class="${r.active > 0 ? 'type-'+r.type : ''}">${r.active}</td>
+      <td style="color:${r.timer > 0 ? 'var(--accent)' : 'var(--text-dim)'}">${r.timer}</td>
+      <td>${r.select}</td>
+      <td style="color:${r.trigger ? 'var(--yellow)' : 'var(--text-dim)'}">${r.trigger}</td>
+      <td style="color:${r.msg ? 'var(--red)' : 'var(--text-dim)'};font-size:10px;">${r.msg || '—'}</td>
+      <td>${r.wl} m</td>
+      <td>${r.rd} m</td>
+      <td>${r.pt} °C</td>
+      <td>${r.bv} V</td>
+    </tr>`).join('');
+}
+
+// ─────────────────────────────────────────────
+// TOAST NOTIFICATIONS
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─────────────────────────────────────────────
+// START - Initialize and Poll for Updates
+// ─────────────────────────────────────────────
+(async function init() {
+  await updateUI();
+  // Poll every 500ms for updates from backend
+  setInterval(updateUI, 500);
+})();
+</script>
+</body>
+</html>
